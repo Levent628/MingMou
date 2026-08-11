@@ -1,0 +1,41 @@
+# ============ Visual Studio / IDE ============
+.vs/
+.vscode/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# ============ 构建产物 ============
+bin/
+obj/
+[Bb]uild/
+[Ll]og/
+[Ll]ogs/
+*.log
+
+# ============ NuGet ============
+*.nupkg
+*.snupkg
+packages/
+!packages/**/build/**
+
+# ============ 本地打包产物（不提交） ============
+installer/
+MingMouSetup*.exe
+
+# ============ 项目本地数据（记忆/状态，不公开） ============
+.workbuddy/
+
+# ============ 运行时数据（用户本机生成） ============
+# 用户机器上的设置/日志目录不在仓库内，无需忽略；
+# 若在仓库内运行产生，可放开下面两行：
+# settings.json
+# Logs/
+tmp*
+
+# ============ 发布配置（含本机路径，不提交） ============
+PublishProfiles/
+*.pubxml
+# ============ 内部文稿（不公开，如视频文案） ============
+docs/

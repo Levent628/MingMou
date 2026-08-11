@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  ============================================================================
+  文件：MingMou.csproj
+  用途：明眸（MingMou）护眼提醒应用的项目文件
+  说明：WinUI 3 单项目 MSIX 应用（Windows App SDK）
+  ============================================================================
+-->
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+
+    <!-- 目标框架：net8.0 + Windows 10 19041 SDK（WinUI 3 推荐配置） -->
+    <TargetFramework>net8.0-windows10.0.19041.0</TargetFramework>
+    <!-- 最低支持系统：Windows 10 1809（Windows App SDK 的最低要求） -->
+    <TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
+
+    <RootNamespace>MingMou</RootNamespace>
+    <AssemblyName>MingMou</AssemblyName>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>Assets\icon.ico</ApplicationIcon>
+
+    <Platforms>x86;x64;ARM64</Platforms>
+    <RuntimeIdentifiers>win-x86;win-x64;win-arm64</RuntimeIdentifiers>
+
+    <!-- 启用 WinUI 3 与单项目 MSIX 打包工具链 -->
+    <UseWinUI>true</UseWinUI>
+    <EnableMsixTooling>true</EnableMsixTooling>
+
+    <!-- 采用"非打包"模式（Inno Setup 安装 / F5 直跑 exe）。
+         如需切到 MSIX 打包（App Installer 界面）：注释掉下面一行，
+         VS 打包菜单生成 .msix/.msixbundle（需系统装 Windows App SDK 1.6 运行时）。 -->
+    <WindowsPackageType>None</WindowsPackageType>
+
+
+    <!-- 默认语言：简体中文（界面文案全部为中文） -->
+    <DefaultLanguage>zh-CN</DefaultLanguage>
+
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <ImplicitUsings>enable</ImplicitUsings>
+
+    <!-- 生成 XML 文档文件，便于校验"公开成员必须有 XML 注释"这一规范 -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <!-- CS1591：缺少 XML 注释。此处不忽略，缺注释会以警告形式暴露出来 -->
+    <NoWarn>$(NoWarn);NU1701</NoWarn>
+
+    <!-- 减小自包含发布体积：只保留简体中文与英文的卫星资源语言包，
+         其余语言目录（de/fr/ja/…）不再生成，可显著缩小安装体积 -->
+    <SatelliteResourceLanguages>zh-CN;en</SatelliteResourceLanguages>
+  </PropertyGroup>
+
+  <!-- 禁用 XAML 编译器生成的 Program.Main，改由本项目的 Program.cs 提供入口，
+       以便在“非打包”模式下于 Application.Start 之前调用 Bootstrap.Initialize() 注册 Windows App SDK 运行时。 -->
+  <PropertyGroup>
+    <DefineConstants>$(DefineConstants);DISABLE_XAML_GENERATED_MAIN</DefineConstants>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!--
+      依赖包版本说明（重要）：
+      需求文档中给出的是 Microsoft.WindowsAppSDK 1.5.240802001，
+      但 H.NotifyIcon.WinUI 2.2.0 的包依赖为 Microsoft.WindowsAppSDK >= 1.6.241114003，
+      两者组合会触发 NuGet 包降级错误 NU1605，因此这里统一提升到 1.6 系列。
+      若必须锁定 1.5.240802001，请把 H.NotifyIcon.WinUI 降级到 2.1.0。
+    -->
+    <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.6.241114003" />
+    <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.26100.1742" />
+    <PackageReference Include="H.NotifyIcon.WinUI" Version="2.2.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- 应用图标与 MSIX 包资源 -->
+    <Content Include="Assets\**\*.png" />
+    <Content Include="Assets\icon.ico" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Manifest Include="$(ApplicationManifest)" Condition="'$(WindowsPackageType)' == 'None'" />
+  </ItemGroup>
+
+  <!--
+    以下配置用于兼容"非打包（Unpackaged）"运行方式。
+    默认采用「自包含」模式：Windows App SDK 与 .NET 运行时全部随应用分发
+    （发布体积约 110~160MB），目标机器免装任何运行时，双击即用。
+    Program.cs 依据 WINDOWSAPPSDK_SELF_CONTAINED 常量跳过 Bootstrap（自包含不需要）。
+    若想切回「框架依赖」（体积几 MB，但需安装器检测并安装运行时）：
+    把下面两个 *SelfContained 改为 false，并移除 DefineConstants 中的 ;WINDOWSAPPSDK_SELF_CONTAINED。
+  -->
+  <PropertyGroup Condition="'$(WindowsPackageType)' == 'None'">
+    <EnableMsixTooling>false</EnableMsixTooling>
+    <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
+    <SelfContained>true</SelfContained>
+    <DefineConstants>$(DefineConstants);UNPACKAGED;WINDOWSAPPSDK_SELF_CONTAINED</DefineConstants>
+  </PropertyGroup>
+
+  <!--
+    备注：非打包 + 框架依赖模式下必须把原生 Bootstrap.dll 复制到输出根目录，
+    否则 Bootstrap 引导运行时失败、启动即崩（DllImport 只搜应用根目录）。
+    自包含模式下不会调用 Bootstrap，此复制无害（多带一个 DLL），保留以备切换。
+  -->
+  <ItemGroup>
+    <None Include="$(NuGetPackageRoot)microsoft.windowsappsdk\1.6.241114003\runtimes\win-x64\native\Microsoft.WindowsAppRuntime.Bootstrap.dll"
+          Link="Microsoft.WindowsAppRuntime.Bootstrap.dll"
+          CopyToOutputDirectory="PreserveNewest"
+          Visible="false" />
+  </ItemGroup>
+
+  <!-- Visual Studio 中"打包/发布"菜单所需的能力开关 -->
+  <PropertyGroup Condition="'$(DisableHasPackageAndPublishMenuAddedByProject)'!='true' AND '$(EnableMsixTooling)'=='true'">
+    <HasPackageAndPublishMenu>true</HasPackageAndPublishMenu>
+  </PropertyGroup>
+
+  <!--
+    自包含构建瘦身：.NET 运行时会全量复制几十种语言的卫星资源目录（af-ZA/de-DE/ja-JP…），
+    SatelliteResourceLanguages 只裁剪 NuGet 依赖、裁不掉运行时自带资源；
+    这里在每次构建完成后删除非中英文的语言目录，减小安装包体积。
+    语言目录判定：第一段为 2-3 个小写字母、后续段 2-8 个字母数字（如 af-ZA、az-Latn-AZ、
+    sr-Cyrl-RS、fil-PH、en-us），不含点号——Microsoft.UI.Xaml/runtimes/Assets/Controls
+    等非语言目录不受影响。保留 zh-CN/en/en-US/en-us/zh-Hans。
+    （Exec 失败不阻断构建：ContinueOnError，最坏情况只是语言目录没删掉）
+  -->
+  <Target Name="TrimExtraLanguages" AfterTargets="Build">
+    <Exec ContinueOnError="true" Command="powershell -NoProfile -ExecutionPolicy Bypass -Command &quot;Get-ChildItem '$(OutDir)' -Directory -ErrorAction SilentlyContinue | Where-Object { $_.Name -match '^[a-z]{2,3}(-[A-Za-z0-9]{2,8})*$' -and $_.Name -notin @('zh-CN','en','en-US','en-us','zh-Hans') } | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue&quot;" />
+  </Target>
+
+</Project>

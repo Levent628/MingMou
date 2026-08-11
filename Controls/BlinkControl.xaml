@@ -1,0 +1,194 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  ============================================================================
+  文件：Controls/BlinkControl.xaml
+  用途：眨眼动画控件，使用 Storyboard 驱动眼睑闭合、眼球下移与整体呼吸效果
+  ============================================================================
+-->
+<UserControl
+    x:Class="MingMou.Controls.BlinkControl"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Width="220"
+    Height="160">
+
+    <UserControl.Resources>
+        <!-- 眨眼动画 Storyboard：总时长 600ms，闭合关键帧在 300ms -->
+        <Storyboard x:Name="BlinkStoryboard" Completed="OnBlinkAnimationCompleted">
+            <!-- ========================================================= -->
+            <!-- 1) 左眼睑遮罩缩放：从完全睁开（ScaleY=0）到闭合（ScaleY=1）再睁开 -->
+            <!--    遮罩以顶部为原点向下拉伸，ScaleY=1 时正好盖住整只眼睛 -->
+            <!-- ========================================================= -->
+            <DoubleAnimationUsingKeyFrames
+                Storyboard.TargetName="LeftEyelidScaleTransform"
+                Storyboard.TargetProperty="ScaleY">
+                <EasingDoubleKeyFrame KeyTime="0:0:0.0" Value="0.0">
+                    <EasingDoubleKeyFrame.EasingFunction>
+                        <QuadraticEase EasingMode="EaseOut" />
+                    </EasingDoubleKeyFrame.EasingFunction>
+                </EasingDoubleKeyFrame>
+                <EasingDoubleKeyFrame KeyTime="0:0:0.3" Value="1.0">
+                    <EasingDoubleKeyFrame.EasingFunction>
+                        <QuadraticEase EasingMode="EaseIn" />
+                    </EasingDoubleKeyFrame.EasingFunction>
+                </EasingDoubleKeyFrame>
+                <EasingDoubleKeyFrame KeyTime="0:0:0.6" Value="0.0">
+                    <EasingDoubleKeyFrame.EasingFunction>
+                        <QuadraticEase EasingMode="EaseOut" />
+                    </EasingDoubleKeyFrame.EasingFunction>
+                </EasingDoubleKeyFrame>
+            </DoubleAnimationUsingKeyFrames>
+
+            <!-- ========================================================= -->
+            <!-- 1-b) 右眼睑遮罩缩放：关键帧与左眼完全一致，保证双眼同步闭合 -->
+            <!-- ========================================================= -->
+            <DoubleAnimationUsingKeyFrames
+                Storyboard.TargetName="RightEyelidScaleTransform"
+                Storyboard.TargetProperty="ScaleY">
+                <EasingDoubleKeyFrame KeyTime="0:0:0.0" Value="0.0">
+                    <EasingDoubleKeyFrame.EasingFunction>
+                        <QuadraticEase EasingMode="EaseOut" />
+                    </EasingDoubleKeyFrame.EasingFunction>
+                </EasingDoubleKeyFrame>
+                <EasingDoubleKeyFrame KeyTime="0:0:0.3" Value="1.0">
+                    <EasingDoubleKeyFrame.EasingFunction>
+                        <QuadraticEase EasingMode="EaseIn" />
+                    </EasingDoubleKeyFrame.EasingFunction>
+                </EasingDoubleKeyFrame>
+                <EasingDoubleKeyFrame KeyTime="0:0:0.6" Value="0.0">
+                    <EasingDoubleKeyFrame.EasingFunction>
+                        <QuadraticEase EasingMode="EaseOut" />
+                    </EasingDoubleKeyFrame.EasingFunction>
+                </EasingDoubleKeyFrame>
+            </DoubleAnimationUsingKeyFrames>
+
+            <!-- ========================================================= -->
+            <!-- 2) 眼睛整体轻微下移，模拟真实眨眼时眼睑带动眼球的效果 -->
+            <!-- ========================================================= -->
+            <DoubleAnimationUsingKeyFrames
+                Storyboard.TargetName="EyesTranslateTransform"
+                Storyboard.TargetProperty="Y">
+                <EasingDoubleKeyFrame KeyTime="0:0:0.0" Value="0" />
+                <EasingDoubleKeyFrame KeyTime="0:0:0.3" Value="4">
+                    <EasingDoubleKeyFrame.EasingFunction>
+                        <QuadraticEase EasingMode="EaseInOut" />
+                    </EasingDoubleKeyFrame.EasingFunction>
+                </EasingDoubleKeyFrame>
+                <EasingDoubleKeyFrame KeyTime="0:0:0.6" Value="0">
+                    <EasingDoubleKeyFrame.EasingFunction>
+                        <QuadraticEase EasingMode="EaseInOut" />
+                    </EasingDoubleKeyFrame.EasingFunction>
+                </EasingDoubleKeyFrame>
+            </DoubleAnimationUsingKeyFrames>
+
+            <!-- ========================================================= -->
+            <!-- 3) 整体呼吸缩放：1.0 -> 1.06 -> 1.0，围绕控件中心 -->
+            <!-- ========================================================= -->
+            <DoubleAnimationUsingKeyFrames
+                Storyboard.TargetName="RootScaleTransform"
+                Storyboard.TargetProperty="ScaleX">
+                <EasingDoubleKeyFrame KeyTime="0:0:0.0" Value="1.0" />
+                <EasingDoubleKeyFrame KeyTime="0:0:0.3" Value="1.06">
+                    <EasingDoubleKeyFrame.EasingFunction>
+                        <QuadraticEase EasingMode="EaseOut" />
+                    </EasingDoubleKeyFrame.EasingFunction>
+                </EasingDoubleKeyFrame>
+                <EasingDoubleKeyFrame KeyTime="0:0:0.6" Value="1.0">
+                    <EasingDoubleKeyFrame.EasingFunction>
+                        <QuadraticEase EasingMode="EaseIn" />
+                    </EasingDoubleKeyFrame.EasingFunction>
+                </EasingDoubleKeyFrame>
+            </DoubleAnimationUsingKeyFrames>
+            <DoubleAnimationUsingKeyFrames
+                Storyboard.TargetName="RootScaleTransform"
+                Storyboard.TargetProperty="ScaleY">
+                <EasingDoubleKeyFrame KeyTime="0:0:0.0" Value="1.0" />
+                <EasingDoubleKeyFrame KeyTime="0:0:0.3" Value="1.06">
+                    <EasingDoubleKeyFrame.EasingFunction>
+                        <QuadraticEase EasingMode="EaseOut" />
+                    </EasingDoubleKeyFrame.EasingFunction>
+                </EasingDoubleKeyFrame>
+                <EasingDoubleKeyFrame KeyTime="0:0:0.6" Value="1.0">
+                    <EasingDoubleKeyFrame.EasingFunction>
+                        <QuadraticEase EasingMode="EaseIn" />
+                    </EasingDoubleKeyFrame.EasingFunction>
+                </EasingDoubleKeyFrame>
+            </DoubleAnimationUsingKeyFrames>
+        </Storyboard>
+    </UserControl.Resources>
+
+    <!-- 根节点：承载整体呼吸缩放，RenderTransformOrigin 设为控件中心 -->
+    <Grid RenderTransformOrigin="0.5,0.5">
+        <Grid.RenderTransform>
+            <ScaleTransform x:Name="RootScaleTransform" ScaleX="1" ScaleY="1" />
+        </Grid.RenderTransform>
+
+        <!-- 眼睛容器：水平排列两只眼睛 -->
+        <StackPanel
+            HorizontalAlignment="Center"
+            VerticalAlignment="Center"
+            Orientation="Horizontal"
+            Spacing="28">
+            <StackPanel.RenderTransform>
+                <TranslateTransform x:Name="EyesTranslateTransform" Y="0" />
+            </StackPanel.RenderTransform>
+
+            <!-- 左眼 -->
+            <Grid Width="64" Height="64">
+                <!-- 眼白 -->
+                <Ellipse Fill="{ThemeResource EyeWhiteBrush}" Stroke="{ThemeResource BrandPrimaryBrush}" StrokeThickness="2" />
+                <!-- 虹膜与瞳孔组合 -->
+                <Grid HorizontalAlignment="Center" VerticalAlignment="Center">
+                    <Ellipse Width="28" Height="28" Fill="{ThemeResource BrandPrimaryBrush}" />
+                    <Ellipse Width="14" Height="14" Fill="{ThemeResource PupilBrush}" />
+                    <!-- 高光点 -->
+                    <Ellipse
+                        Width="6"
+                        Height="6"
+                        Margin="-8,-8,0,0"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center"
+                        Fill="{ThemeResource BrandAccentBrush}" />
+                </Grid>
+
+                <!-- 眼睑遮罩层：以顶边为原点做垂直缩放，模拟眼睑向下闭合 -->
+                <Rectangle
+                    Fill="{ThemeResource EyelidBrush}"
+                    RadiusX="32"
+                    RadiusY="32"
+                    RenderTransformOrigin="0.5,0">
+                    <Rectangle.RenderTransform>
+                        <ScaleTransform x:Name="LeftEyelidScaleTransform" ScaleX="1" ScaleY="0" />
+                    </Rectangle.RenderTransform>
+                </Rectangle>
+            </Grid>
+
+            <!-- 右眼 -->
+            <Grid Width="64" Height="64">
+                <Ellipse Fill="{ThemeResource EyeWhiteBrush}" Stroke="{ThemeResource BrandPrimaryBrush}" StrokeThickness="2" />
+                <Grid HorizontalAlignment="Center" VerticalAlignment="Center">
+                    <Ellipse Width="28" Height="28" Fill="{ThemeResource BrandPrimaryBrush}" />
+                    <Ellipse Width="14" Height="14" Fill="{ThemeResource PupilBrush}" />
+                    <Ellipse
+                        Width="6"
+                        Height="6"
+                        Margin="-8,-8,0,0"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center"
+                        Fill="{ThemeResource BrandAccentBrush}" />
+                </Grid>
+
+                <!-- 右眼睑遮罩层：与左眼结构一致，由同一 Storyboard 同步驱动 -->
+                <Rectangle
+                    Fill="{ThemeResource EyelidBrush}"
+                    RadiusX="32"
+                    RadiusY="32"
+                    RenderTransformOrigin="0.5,0">
+                    <Rectangle.RenderTransform>
+                        <ScaleTransform x:Name="RightEyelidScaleTransform" ScaleX="1" ScaleY="0" />
+                    </Rectangle.RenderTransform>
+                </Rectangle>
+            </Grid>
+        </StackPanel>
+    </Grid>
+</UserControl>

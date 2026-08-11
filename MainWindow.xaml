@@ -1,0 +1,342 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  ============================================================================
+  文件：MainWindow.xaml
+  用途：应用主窗口。层进式两视图（主视图/设置视图），标题栏返回按钮常驻。
+       主视图采用 ViewBox 真响应式（动画随窗口大小缩放，不裁剪不滚动）。
+  ============================================================================
+-->
+<Window
+    x:Class="MingMou.MainWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:controls="using:MingMou.Controls"
+    Title="明眸">
+
+    <!--
+      SDK 1.6 限制：ExtendsContentIntoTitleBar 与 <DesktopAcrylicBackdrop /> 不能写在 XAML
+      （XAML 编译器会静默崩溃），均在 InitializeWindow() 中用代码设置。
+    -->
+
+    <Grid
+        x:Name="RootLayout"
+        Background="Transparent">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!-- ============================================================= -->
+        <!-- 自定义标题栏：左侧标题区（主视图/设置视图两态切换）+ 右侧窗口控制 -->
+        <!-- ============================================================= -->
+        <Grid
+            x:Name="AppTitleBar"
+            Grid.Row="0"
+            Height="40"
+            Padding="8,0,0,0"
+            Background="Transparent">
+
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <!-- 左侧标题区：主视图显示图标+名称；设置视图显示返回按钮+设置标题（常驻不随滚动消失） -->
+            <Grid
+                Grid.Column="0"
+                VerticalAlignment="Center">
+                <!-- 主视图状态 -->
+                <StackPanel
+                    x:Name="TitleMainState"
+                    Orientation="Horizontal"
+                    Spacing="8">
+                    <FontIcon
+                        FontFamily="Segoe Fluent Icons"
+                        FontSize="14"
+                        Foreground="{ThemeResource BrandPrimaryBrush}"
+                        Glyph="&#xE7B3;" />
+                    <TextBlock
+                        FontSize="13"
+                        FontWeight="SemiBold"
+                        Foreground="{ThemeResource TitleTextBrush}"
+                        Text="明眸" />
+                </StackPanel>
+
+                <!-- 设置视图状态：返回按钮（默认样式保留 Win11 hover/pressed 反馈）+ 页面标题 -->
+                <Button
+                    x:Name="TitleBackButton"
+                    Padding="10,4"
+                    VerticalAlignment="Center"
+                    Background="Transparent"
+                    BorderThickness="0"
+                    Click="OnBackClick"
+                    Visibility="Collapsed">
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                        <FontIcon
+                            FontFamily="Segoe Fluent Icons"
+                            FontSize="13"
+                            Foreground="{ThemeResource BodyTextBrush}"
+                            Glyph="&#xE72B;" />
+                        <TextBlock
+                            FontSize="13"
+                            FontWeight="SemiBold"
+                            Foreground="{ThemeResource BodyTextBrush}"
+                            Text="设置" />
+                    </StackPanel>
+                </Button>
+            </Grid>
+
+            <!-- 设置按钮：图标按钮，位于最小化按钮左侧，不占用主界面空间 -->
+            <Button
+                Grid.Column="1"
+                Click="OnSettingsClick"
+                Content="&#xE713;"
+                Style="{StaticResource CaptionButtonStyle}"
+                ToolTipService.ToolTip="设置" />
+
+            <!-- 最小化按钮 -->
+            <Button
+                Grid.Column="2"
+                Click="OnMinimizeClick"
+                Content="&#xE921;"
+                Style="{StaticResource CaptionButtonStyle}"
+                ToolTipService.ToolTip="最小化到托盘" />
+
+            <!-- 关闭按钮 -->
+            <Button
+                Grid.Column="3"
+                Click="OnCloseClick"
+                Content="&#xE711;"
+                Style="{StaticResource CaptionButtonStyle}"
+                ToolTipService.ToolTip="关闭窗口（保持后台运行）" />
+        </Grid>
+
+        <!-- ============================================================= -->
+        <!-- 内容区：主视图与设置视图层进切换 -->
+        <!-- ============================================================= -->
+        <Grid Grid.Row="1" Padding="20,8,20,16">
+
+            <!-- ================= 主视图（真响应式：ViewBox 缩放动画，不滚动） ================= -->
+            <Grid x:Name="MainView">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <!-- 眨眼动画：ViewBox 让控件随可用空间等比缩放，窗口变小时眼睛缩小而非被裁 -->
+                <Viewbox
+                    Grid.Row="0"
+                    MaxWidth="200"
+                    MaxHeight="120"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center">
+                    <controls:BlinkControl x:Name="BlinkAnimation" />
+                </Viewbox>
+
+                <!-- 倒计时与提示文本 -->
+                <StackPanel
+                    Grid.Row="1"
+                    Margin="0,8,0,0"
+                    HorizontalAlignment="Center"
+                    Spacing="4">
+                    <TextBlock
+                        x:Name="StatusTextBlock"
+                        HorizontalAlignment="Center"
+                        FontSize="14"
+                        Foreground="{ThemeResource HintTextBrush}"
+                        Text="下次提醒：25 秒" />
+                    <TextBlock
+                        x:Name="HintTextBlock"
+                        HorizontalAlignment="Center"
+                        FontSize="13"
+                        FontWeight="SemiBold"
+                        Foreground="{ThemeResource BrandPrimaryBrush}"
+                        Opacity="0"
+                        Text="" />
+                </StackPanel>
+
+                <!-- 操作按钮区：现在眨眼（主按钮）/ 暂停（次按钮，默认 Win11 样式，尺寸与主按钮一致） -->
+                <StackPanel
+                    Grid.Row="2"
+                    Margin="0,12,0,0"
+                    HorizontalAlignment="Center"
+                    Orientation="Horizontal"
+                    Spacing="8">
+                    <Button
+                        Click="OnBlinkNowClick"
+                        Content="现在眨眼"
+                        Style="{StaticResource ActionButtonStyle}" />
+                    <Button
+                        x:Name="PauseButton"
+                        Padding="16,8"
+                        FontSize="14"
+                        Click="OnPauseClick"
+                        Content="暂停 30 分钟" />
+                </StackPanel>
+
+                <!-- 底部统计：今日已眨眼计数（与底部保持适当间距） -->
+                <Border
+                    Grid.Row="3"
+                    Margin="0,16,0,4"
+                    Padding="12,6"
+                    Background="{ThemeResource CardBackgroundBrush}"
+                    CornerRadius="8">
+                    <StackPanel Spacing="2">
+                        <TextBlock
+                            FontSize="12"
+                            Foreground="{ThemeResource HintTextBrush}"
+                            Text="今日已眨眼" />
+                        <TextBlock
+                            x:Name="BlinkCountTextBlock"
+                            FontSize="18"
+                            FontWeight="Bold"
+                            Foreground="{ThemeResource BodyTextBrush}"
+                            Text="0 次" />
+                    </StackPanel>
+                </Border>
+            </Grid>
+
+            <!-- ================= 设置视图（层进，默认隐藏；内容多可滚动） ================= -->
+            <Grid
+                x:Name="SettingsView"
+                Visibility="Collapsed">
+                <ScrollViewer>
+                    <StackPanel Spacing="14">
+
+                        <!-- 分组：系统（开机自启动） -->
+                        <TextBlock
+                            FontSize="12"
+                            FontWeight="SemiBold"
+                            Foreground="{ThemeResource HintTextBrush}"
+                            Text="系统" />
+
+                        <ToggleSwitch
+                            x:Name="AutoStartToggle"
+                            FontSize="13"
+                            Header="开机自启动"
+                            Toggled="OnAutoStartToggled" />
+
+                        <!-- 分组：外观（主题模式） -->
+                        <TextBlock
+                            Margin="0,8,0,0"
+                            FontSize="12"
+                            FontWeight="SemiBold"
+                            Foreground="{ThemeResource HintTextBrush}"
+                            Text="外观" />
+
+                        <StackPanel Spacing="2">
+                            <RadioButton
+                                x:Name="ThemeSystemRadio"
+                                Checked="OnThemeChanged"
+                                Content="跟随系统"
+                                GroupName="ThemeGroup" />
+                            <RadioButton
+                                x:Name="ThemeLightRadio"
+                                Checked="OnThemeChanged"
+                                Content="浅色"
+                                GroupName="ThemeGroup" />
+                            <RadioButton
+                                x:Name="ThemeDarkRadio"
+                                Checked="OnThemeChanged"
+                                Content="深色"
+                                GroupName="ThemeGroup" />
+                        </StackPanel>
+
+                        <!-- 分组：提醒（间隔 / 智能 / 暂停时长） -->
+                        <TextBlock
+                            Margin="0,8,0,0"
+                            FontSize="12"
+                            FontWeight="SemiBold"
+                            Foreground="{ThemeResource HintTextBrush}"
+                            Text="提醒" />
+
+                        <!-- 提醒间隔滑块 -->
+                        <StackPanel Spacing="6">
+                            <TextBlock
+                                FontSize="13"
+                                Foreground="{ThemeResource BodyTextBrush}"
+                                Text="提醒间隔（秒）" />
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+
+                                <Slider
+                                    x:Name="IntervalSlider"
+                                    Grid.Column="0"
+                                    StepFrequency="5"
+                                    ValueChanged="OnIntervalChanged" />
+
+                                <TextBlock
+                                    x:Name="IntervalValueText"
+                                    Grid.Column="1"
+                                    Width="52"
+                                    VerticalAlignment="Center"
+                                    FontSize="13"
+                                    Foreground="{ThemeResource BodyTextBrush}"
+                                    Text="25 秒"
+                                    TextAlignment="Right" />
+                            </Grid>
+                        </StackPanel>
+
+                        <!-- 智能间隔开关 -->
+                        <ToggleSwitch
+                            x:Name="SmartIntervalToggle"
+                            FontSize="13"
+                            Header="智能间隔（动态推荐）"
+                            Toggled="OnSmartIntervalToggled" />
+
+                        <!-- 智能推荐实时信息 -->
+                        <TextBlock
+                            x:Name="SmartInfoText"
+                            FontSize="12"
+                            Foreground="{ThemeResource HintTextBrush}"
+                            Text="已用眼 0 分钟，推荐 25 秒"
+                            TextWrapping="Wrap" />
+
+                        <!-- 暂停时长：预设候选 + 自定义 -->
+                        <StackPanel Spacing="6">
+                            <TextBlock
+                                FontSize="13"
+                                Foreground="{ThemeResource BodyTextBrush}"
+                                Text="暂停时长" />
+                            <ComboBox
+                                x:Name="PauseCombo"
+                                HorizontalAlignment="Stretch"
+                                SelectionChanged="OnPauseSelectionChanged" />
+                            <NumberBox
+                                x:Name="PauseCustomBox"
+                                Minimum="1"
+                                Maximum="600"
+                                Header="自定义分钟"
+                                SpinButtonPlacementMode="Compact"
+                                Visibility="Collapsed"
+                                ValueChanged="OnPauseCustomChanged" />
+                        </StackPanel>
+
+                        <!-- 说明 -->
+                        <TextBlock
+                            Margin="0,8,0,0"
+                            FontSize="11"
+                            Foreground="{ThemeResource HintTextBrush}"
+                            Text="提醒到点统一以右下角透明小窗呈现。智能间隔依据 20-20-20 法则（每用眼 20 分钟远眺 20 秒）与视屏终端综合征研究，按用眼时长动态加密提醒；属体验优化，非严格医学处方。"
+                            TextWrapping="Wrap" />
+
+                        <!-- 开源项目链接 -->
+                        <HyperlinkButton
+                            Margin="0,12,0,0"
+                            HorizontalAlignment="Center"
+                            Content="开源项目 · MingMou"
+                            FontSize="11"
+                            NavigateUri="https://github.com/Levent628/MingMou" />
+                    </StackPanel>
+                </ScrollViewer>
+            </Grid>
+        </Grid>
+    </Grid>
+</Window>
